@@ -1,19 +1,13 @@
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
-const cors = require('cors');
-const qrcode = require('qrcode');
-const fs = require('fs');
 const os = require('os');
 
 // Initialize express app
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
 // Middleware
-app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -43,6 +37,16 @@ app.get('/student-login.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'student-login.html'));
 });
 
+// API endpoint to get server IP address
+app.get('/get-ip', (req, res) => {
+    const ipAddress = getLocalIpAddress();
+    const port = process.env.PORT || 3000;
+    res.json({
+        ipAddress: ipAddress,
+        port: port
+    });
+});
+
 // API endpoint to register student attendance
 app.post('/register-attendance', (req, res) => {
     const { studentNumber, name, surname } = req.body;
@@ -51,7 +55,7 @@ app.post('/register-attendance', (req, res) => {
         return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const timestamp = new Date().toISOString();
+    const timestamp = new Date().toLocaleTimeString();
     const ipAddress = req.ip || req.connection.remoteAddress;
 
     const student = {
@@ -63,54 +67,18 @@ app.post('/register-attendance', (req, res) => {
     };
 
     students.push(student);
+    console.log(`New student registered: ${name} ${surname}`);
 
-    // Emit to all connected clients (teacher interfaces)
-    io.emit('new-attendance', student);
-
-    res.status(200).json({ success: true, message: 'Attendance registered' });
-});
-
-// Socket.io connection handling
-io.on('connection', (socket) => {
-    console.log('A client connected');
-
-    // Send current students list
-    socket.emit('students-list', students);
-
-    socket.on('disconnect', () => {
-        console.log('A client disconnected');
+    res.status(200).json({
+        success: true,
+        message: 'Attendance registered',
+        studentsCount: students.length
     });
 });
 
-// Generate QR code API
-app.get('/generate-qr', async (req, res) => {
-    const ipAddress = getLocalIpAddress();
-    const port = process.env.PORT || 3000;
-    const url = `http://${ipAddress}:${port}/student-login.html`;
-
-    try {
-        const qrCodeDataUrl = await qrcode.toDataURL(url);
-        res.json({
-            qrCode: qrCodeDataUrl,
-            url: url,
-            ipAddress: ipAddress
-        });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to generate QR code' });
-    }
-});
-
-// Export attendance data as CSV
-app.get('/export-csv', (req, res) => {
-    let csvContent = 'Student Number,Name,Surname,Timestamp,IP Address\n';
-
-    students.forEach(student => {
-        csvContent += `${student.studentNumber},${student.name},${student.surname},${student.timestamp},${student.ipAddress}\n`;
-    });
-
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=attendance.csv');
-    res.send(csvContent);
+// API endpoint to get all registered students
+app.get('/students', (req, res) => {
+    res.json(students);
 });
 
 // Start the server
@@ -118,4 +86,5 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     const ipAddress = getLocalIpAddress();
     console.log(`Server running on http://${ipAddress}:${PORT}`);
+    console.log(`Student login page: http://${ipAddress}:${PORT}/student-login.html`);
 });

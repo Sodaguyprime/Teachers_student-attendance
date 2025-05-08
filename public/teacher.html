@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Teacher Attendance App</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <style>
@@ -16,13 +16,7 @@
             display: flex;
             gap: 20px;
         }
-        .qr-section {
-            flex: 1;
-            border: 1px solid #ddd;
-            padding: 20px;
-            border-radius: 8px;
-        }
-        .attendance-section {
+        .qr-section, .attendance-section {
             flex: 1;
             border: 1px solid #ddd;
             padding: 20px;
@@ -51,19 +45,11 @@
             margin-top: 20px;
             text-align: center;
         }
-        #ipAddress {
-            font-weight: bold;
-            color: #0066cc;
-            font-size: 16px;
-        }
         .button {
             background-color: #4CAF50;
             border: none;
             color: white;
             padding: 10px 15px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
             font-size: 16px;
             margin: 4px 2px;
             cursor: pointer;
@@ -82,14 +68,6 @@
             background-color: #f8d7da;
             color: #721c24;
         }
-        #studentUrl {
-            word-break: break-all;
-            margin-top: 10px;
-            padding: 5px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
     </style>
 </head>
 <body>
@@ -98,11 +76,8 @@
 <div class="container">
     <div class="qr-section">
         <h2>Attendance QR Code</h2>
-        <p>Server IP Address: <span id="ipAddress">Finding...</span></p>
-        <p>Port: <span id="port">Finding...</span></p>
-        <button id="generateQR" class="button">Generate QR Code</button>
+        <button id="startQR" class="button">Start QR Code</button>
         <div id="qrcode"></div>
-        <div id="studentUrl"></div>
         <div id="qrStatus" class="status"></div>
     </div>
 
@@ -119,164 +94,126 @@
                 <th>Time</th>
             </tr>
             </thead>
-            <tbody id="attendanceList">
-            <!-- Attendance data will be inserted here -->
-            </tbody>
+            <tbody id="attendanceList"></tbody>
         </table>
         <button id="exportCSV" class="button" style="margin-top: 20px;">Export to CSV</button>
+        <button id="resetRegistrations" class="button" style="margin-top: 20px; margin-left: 10px; background-color: #dc3545;">Reset All Registrations</button>
     </div>
 </div>
 
 <script>
-    // Track students locally
     let students = [];
+    let qrInterval = null;
+    let serverIP = null;
+    let port = null;
 
-    // Get the server's IP address through an API call
-    function getServerIP() {
-        return new Promise((resolve, reject) => {
-            fetch('/get-ip')
-                .then(response => {
-                    if (response.ok) {
-                        return response.json();
-                    }
-                    throw new Error('Failed to get IP address from server');
-                })
-                .then(data => {
-                    if (data && data.ipAddress) {
-                        document.getElementById('port').textContent = data.port;
-                        resolve(data.ipAddress);
-                    } else {
-                        reject(new Error('Invalid IP address response'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error getting server IP:', error);
-                    reject(error);
-                });
-        });
+    async function getServerInfo() {
+        const res = await fetch('/get-ip');
+        const data = await res.json();
+        serverIP = data.ipAddress;
+        port = data.port;
     }
 
-    // Function to generate QR code
-    function generateQRCode() {
-        const ipAddress = document.getElementById('ipAddress').textContent;
-        const port = document.getElementById('port').textContent;
-
-        if (ipAddress === "Finding..." || ipAddress === "Could not determine IP") {
-            document.getElementById('qrStatus').textContent = "Cannot generate QR code: IP address not available";
-            document.getElementById('qrStatus').className = "status error";
-            return;
+    // Generate a random string token
+    function generateToken(length = 10) {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let token = '';
+        for (let i = 0; i < length; i++) {
+            token += chars.charAt(Math.floor(Math.random() * chars.length));
         }
-
-        // Create the URL for students to access
-        const studentUrl = `http://${ipAddress}:${port}/student-login.html`;
-
-        // Generate QR code
-        const qrDiv = document.getElementById('qrcode');
-        qrDiv.innerHTML = '';
-
-        const qr = qrcode(0, 'L');
-        qr.addData(studentUrl);
-        qr.make();
-
-        qrDiv.innerHTML = qr.createImgTag(5);
-
-        document.getElementById('studentUrl').textContent = `Student login URL: ${studentUrl}`;
-        document.getElementById('qrStatus').textContent = `QR code generated successfully!`;
-        document.getElementById('qrStatus').className = "status success";
+        return token;
     }
 
-    // Function to fetch and display all students
+    // Send token to server for validation reference
+    function sendTokenToServer(token) {
+        fetch('/set-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        }).catch(console.error);
+    }
+
+    // Generate and rotate QR code every 5 seconds
+    function startQRCodeRotation() {
+        if (qrInterval) clearInterval(qrInterval);
+
+        qrInterval = setInterval(() => {
+            const token = generateToken();
+            sendTokenToServer(token);
+
+            const qrUrl = `http://${serverIP}:${port}/student-login.html?token=${token}`;
+
+            const qr = qrcode(0, 'L');
+            qr.addData(qrUrl);
+            qr.make();
+
+            const qrDiv = document.getElementById('qrcode');
+            qrDiv.innerHTML = qr.createImgTag(5);
+
+            document.getElementById('qrStatus').textContent = "QR code updated with new token.";
+            document.getElementById('qrStatus').className = "status success";
+        }, 3500);
+    }
+
     function fetchStudents() {
         fetch('/students')
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
                 students = data;
                 updateAttendanceTable();
             })
-            .catch(error => {
-                console.error('Error fetching students:', error);
-            });
+            .catch(console.error);
     }
 
-    // Function to update the attendance table
     function updateAttendanceTable() {
         const tableBody = document.getElementById('attendanceList');
         tableBody.innerHTML = '';
-
         document.getElementById('studentCount').textContent = students.length;
 
         students.forEach(student => {
-            const newRow = tableBody.insertRow();
-
-            const cell1 = newRow.insertCell(0);
-            const cell2 = newRow.insertCell(1);
-            const cell3 = newRow.insertCell(2);
-            const cell4 = newRow.insertCell(3);
-
-            cell1.textContent = student.studentNumber;
-            cell2.textContent = student.name;
-            cell3.textContent = student.surname;
-            cell4.textContent = student.timestamp;
+            const row = tableBody.insertRow();
+            row.insertCell(0).textContent = student.studentNumber;
+            row.insertCell(1).textContent = student.name;
+            row.insertCell(2).textContent = student.surname;
+            row.insertCell(3).textContent = student.timestamp;
         });
     }
 
-    // Function to export attendance to CSV
     function exportToCSV() {
-        if (students.length === 0) {
-            alert("No attendance data to export!");
-            return;
-        }
+        if (students.length === 0) return alert("No data to export");
 
-        // Create CSV content
-        let csvContent = "Student Number,Name,Surname,Timestamp\n";
-
-        students.forEach(student => {
-            csvContent += `${student.studentNumber},${student.name},${student.surname},${student.timestamp}\n`;
+        let csv = "Student Number,Name,Surname,Timestamp\n";
+        students.forEach(s => {
+            csv += `${s.studentNumber},${s.name},${s.surname},${s.timestamp}\n`;
         });
 
-        // Create download link
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.setAttribute('hidden', '');
-        a.setAttribute('href', url);
-        a.setAttribute('download', 'attendance.csv');
-        document.body.appendChild(a);
+        a.href = url;
+        a.download = 'attendance.csv';
         a.click();
-        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
-    // Initialize the app
-    async function initApp() {
-        try {
-            const ipAddress = await getServerIP();
-            document.getElementById('ipAddress').textContent = ipAddress;
-
-            // Automatically generate QR code on load
-            setTimeout(() => {
-                generateQRCode();
-            }, 500);
-
-            // Fetch students initially
-            fetchStudents();
-
-            // Set up auto-refresh for attendance list (every 10 seconds)
-            setInterval(fetchStudents, 10000);
-
-        } catch (error) {
-            document.getElementById('ipAddress').textContent = "Could not determine IP";
-            document.getElementById('qrStatus').textContent = "Error: " + error.message;
-            document.getElementById('qrStatus').className = "status error";
+    function resetRegistrations() {
+        if (confirm("Reset all registrations?")) {
+            fetch('/reset-registrations')
+                .then(res => res.json())
+                .then(() => fetchStudents())
+                .catch(console.error);
         }
     }
 
-    // Set up event listeners
-    document.getElementById('generateQR').addEventListener('click', generateQRCode);
+    document.getElementById('startQR').addEventListener('click', startQRCodeRotation);
     document.getElementById('exportCSV').addEventListener('click', exportToCSV);
     document.getElementById('refreshAttendance').addEventListener('click', fetchStudents);
 
-    // Initialize when page loads
-    window.onload = initApp;
+    window.onload = async () => {
+        await getServerInfo();
+        fetchStudents();
+        setInterval(fetchStudents, 10000);
+    };
 </script>
 </body>
 </html>

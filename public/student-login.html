@@ -90,6 +90,30 @@
 </div>
 
 <script>
+    // Check IP address on page load
+    window.onload = function() {
+        checkIPRegistration();
+    };
+
+    // Function to check if this IP has already registered
+    function checkIPRegistration() {
+        fetch('/check-ip')
+            .then(response => response.json())
+            .then(data => {
+                if (data.registered) {
+                    // Disable the form and show message
+                    document.getElementById('submitBtn').disabled = true;
+                    document.getElementById('studentNumber').disabled = true;
+                    document.getElementById('name').disabled = true;
+                    document.getElementById('surname').disabled = true;
+                    showStatus('You have already registered attendance from this device.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error checking IP registration:', error);
+            });
+    }
+
     document.getElementById('submitBtn').addEventListener('click', submitAttendance);
 
     function submitAttendance() {
@@ -103,6 +127,9 @@
             showStatus('Please fill in all fields', 'error');
             return;
         }
+
+        // Disable button to prevent double submission
+        document.getElementById('submitBtn').disabled = true;
 
         // Prepare student data
         const studentData = {
@@ -120,22 +147,26 @@
             body: JSON.stringify(studentData)
         })
             .then(response => {
-                if (response.ok) {
-                    return response.json();
-                }
-                throw new Error('Network response was not ok');
+                return response.json().then(data => {
+                    if (response.ok) {
+                        return data;
+                    } else {
+                        throw new Error(data.message || 'Error submitting attendance');
+                    }
+                });
             })
             .then(data => {
                 showStatus('Attendance submitted successfully!', 'success');
 
-                // Clear form fields after successful submission
-                document.getElementById('studentNumber').value = '';
-                document.getElementById('name').value = '';
-                document.getElementById('surname').value = '';
+                // Disable form fields after successful submission
+                document.getElementById('studentNumber').disabled = true;
+                document.getElementById('name').disabled = true;
+                document.getElementById('surname').disabled = true;
             })
             .catch(error => {
                 console.error('Error:', error);
-                showStatus('Could not submit attendance. Please try again.', 'error');
+                document.getElementById('submitBtn').disabled = false;
+                showStatus(error.message || 'Could not submit attendance. Please try again.', 'error');
             });
     }
 

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Teacher Attendance App</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+    <!-- Add xlsx and jspdf libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -41,6 +45,9 @@
         tr:nth-child(even) {
             background-color: #f9f9f9;
         }
+        tr.selected {
+            background-color: #e0f7fa;
+        }
         #qrcode {
             margin-top: 20px;
             text-align: center;
@@ -55,6 +62,12 @@
             cursor: pointer;
             border-radius: 4px;
         }
+        .button-red {
+            background-color: #dc3545;
+        }
+        .button-blue {
+            background-color: #007bff;
+        }
         .status {
             margin-top: 10px;
             padding: 10px;
@@ -67,6 +80,66 @@
         .error {
             background-color: #f8d7da;
             color: #721c24;
+        }
+        .search-container {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        #searchInput {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -84,7 +157,18 @@
     <div class="attendance-section">
         <h2>Student Attendance</h2>
         <p>Students who have scanned the QR code: <span id="studentCount">0</span></p>
-        <button id="refreshAttendance" class="button">Refresh Attendance List</button>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search students...">
+            <button id="searchButton" class="button button-blue">Search</button>
+        </div>
+
+        <div>
+            <button id="addStudentBtn" class="button">Add Student</button>
+            <button id="removeStudentBtn" class="button button-red">Remove Selected</button>
+            <button id="refreshAttendance" class="button">Refresh List</button>
+        </div>
+
         <table id="attendanceTable">
             <thead>
             <tr>
@@ -96,8 +180,35 @@
             </thead>
             <tbody id="attendanceList"></tbody>
         </table>
-        <button id="exportCSV" class="button" style="margin-top: 20px;">Export to CSV</button>
-        <button id="resetRegistrations" class="button" style="margin-top: 20px; margin-left: 10px; background-color: #dc3545;">Reset All Registrations</button>
+
+        <div class="export-buttons">
+            <button id="exportExcel" class="button">Export to Excel</button>
+            <button id="exportPDF" class="button">Export to PDF</button>
+            <button id="resetRegistrations" class="button button-red">Reset All Registrations</button>
+        </div>
+    </div>
+</div>
+
+<!-- Add Student Modal -->
+<div id="addStudentModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Add New Student</h2>
+        <form id="addStudentForm">
+            <div class="form-group">
+                <label for="studentNumber">Student Number:</label>
+                <input type="text" id="studentNumber" required>
+            </div>
+            <div class="form-group">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" required>
+            </div>
+            <button type="submit" class="button">Add Student</button>
+        </form>
     </div>
 </div>
 
@@ -106,6 +217,10 @@
     let qrInterval = null;
     let serverIP = null;
     let port = null;
+    let selectedStudentIndex = -1;
+
+    // Setup PDF global
+    const { jsPDF } = window.jspdf;
 
     async function getServerInfo() {
         const res = await fetch('/get-ip');
@@ -137,7 +252,7 @@
     function startQRCodeRotation() {
         if (qrInterval) clearInterval(qrInterval);
 
-        qrInterval = setInterval(() => {
+        const generateAndShowQR = () => {
             const token = generateToken();
             sendTokenToServer(token);
 
@@ -152,8 +267,12 @@
 
             document.getElementById('qrStatus').textContent = "QR code updated with new token.";
             document.getElementById('qrStatus').className = "status success";
-        }, 3500);
+        };
+
+        generateAndShowQR(); //
+        qrInterval = setInterval(generateAndShowQR, 20000); // 🔁 Then repeat every 12s
     }
+
 
     function fetchStudents() {
         fetch('/students')
@@ -165,53 +284,227 @@
             .catch(console.error);
     }
 
-    function updateAttendanceTable() {
+    function updateAttendanceTable(filteredStudents = null) {
         const tableBody = document.getElementById('attendanceList');
         tableBody.innerHTML = '';
-        document.getElementById('studentCount').textContent = students.length;
 
-        students.forEach(student => {
+        const displayStudents = filteredStudents || students;
+        document.getElementById('studentCount').textContent = displayStudents.length;
+
+        displayStudents.forEach((student, index) => {
             const row = tableBody.insertRow();
+            row.dataset.index = index;
             row.insertCell(0).textContent = student.studentNumber;
             row.insertCell(1).textContent = student.name;
             row.insertCell(2).textContent = student.surname;
-            row.insertCell(3).textContent = student.timestamp;
+            row.insertCell(3).textContent = student.timestamp || 'Manually Added';
+
+            // Add click event to select row
+            row.addEventListener('click', function() {
+                // Clear previous selection
+                document.querySelectorAll('#attendanceList tr').forEach(r => r.classList.remove('selected'));
+                // Highlight this row
+                this.classList.add('selected');
+                selectedStudentIndex = this.dataset.index;
+            });
         });
     }
 
-    function exportToCSV() {
-        if (students.length === 0) return alert("No data to export");
+    function addStudent(studentData) {
+        // Add the student to our local array
+        students.push(studentData);
 
-        let csv = "Student Number,Name,Surname,Timestamp\n";
+        // Post to server (you'll need to add this endpoint to your server)
+        fetch('/add-student', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(studentData)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateAttendanceTable();
+                } else {
+                    alert('Error adding student: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error adding student:', err);
+                // Still update the UI even if server fails
+                updateAttendanceTable();
+            });
+    }
+
+    function removeSelectedStudent() {
+        if (selectedStudentIndex < 0 || selectedStudentIndex >= students.length) {
+            alert('Please select a student to remove');
+            return;
+        }
+
+        const student = students[selectedStudentIndex];
+
+        // Remove from local array
+        students.splice(selectedStudentIndex, 1);
+
+        // Remove from server (you'll need to add this endpoint to your server)
+        fetch('/remove-student', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ studentNumber: student.studentNumber })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    updateAttendanceTable();
+                    selectedStudentIndex = -1;
+                } else {
+                    alert('Error removing student: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error removing student:', err);
+                // Still update the UI even if server fails
+                updateAttendanceTable();
+                selectedStudentIndex = -1;
+            });
+    }
+
+    function searchStudents() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        if (!searchTerm) {
+            updateAttendanceTable();
+            return;
+        }
+
+        const filteredStudents = students.filter(student =>
+            student.studentNumber.toLowerCase().includes(searchTerm) ||
+            student.name.toLowerCase().includes(searchTerm) ||
+            student.surname.toLowerCase().includes(searchTerm)
+        );
+
+        updateAttendanceTable(filteredStudents);
+    }
+
+    function exportToExcel() {
+        if (students.length === 0) {
+            alert("No data to export");
+            return;
+        }
+
+        // Format the data for Excel
+        const data = [['Student Number', 'Name', 'Surname', 'Timestamp']];
         students.forEach(s => {
-            csv += `${s.studentNumber},${s.name},${s.surname},${s.timestamp}\n`;
+            data.push([s.studentNumber, s.name, s.surname, s.timestamp || 'Manually Added']);
         });
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'attendance.csv';
-        a.click();
-        URL.revokeObjectURL(url);
+        // Create a worksheet
+        const ws = XLSX.utils.aoa_to_sheet(data);
+
+        // Create a workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+
+        // Generate Excel file and download
+        XLSX.writeFile(wb, "attendance.xlsx");
+    }
+
+    function exportToPDF() {
+        if (students.length === 0) {
+            alert("No data to export");
+            return;
+        }
+
+        // Create PDF document
+        const doc = new jsPDF();
+
+        // Add title
+        doc.setFontSize(18);
+        doc.text("Student Attendance Report", 14, 22);
+
+        // Format the data for PDF
+        const tableData = [];
+        students.forEach(s => {
+            tableData.push([s.studentNumber, s.name, s.surname, s.timestamp || 'Manually Added']);
+        });
+
+        // Add table
+        doc.autoTable({
+            head: [['Student Number', 'Name', 'Surname', 'Timestamp']],
+            body: tableData,
+            startY: 30,
+            margin: { top: 30 }
+        });
+
+        // Generate PDF file and download
+        doc.save("attendance.pdf");
     }
 
     function resetRegistrations() {
         if (confirm("Reset all registrations?")) {
             fetch('/reset-registrations')
                 .then(res => res.json())
-                .then(() => fetchStudents())
+                .then(() => {
+                    fetchStudents();
+                    selectedStudentIndex = -1;
+                })
                 .catch(console.error);
         }
     }
 
+    // Modal functions
+    function openAddStudentModal() {
+        document.getElementById('addStudentModal').style.display = "block";
+    }
+
+    function closeAddStudentModal() {
+        document.getElementById('addStudentModal').style.display = "none";
+    }
+
+    // Event Listeners
     document.getElementById('startQR').addEventListener('click', startQRCodeRotation);
-    document.getElementById('exportCSV').addEventListener('click', exportToCSV);
     document.getElementById('refreshAttendance').addEventListener('click', fetchStudents);
+    document.getElementById('exportExcel').addEventListener('click', exportToExcel);
+    document.getElementById('exportPDF').addEventListener('click', exportToPDF);
+    document.getElementById('resetRegistrations').addEventListener('click', resetRegistrations);
+    document.getElementById('addStudentBtn').addEventListener('click', openAddStudentModal);
+    document.getElementById('removeStudentBtn').addEventListener('click', removeSelectedStudent);
+    document.getElementById('searchButton').addEventListener('click', searchStudents);
+    document.getElementById('searchInput').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            searchStudents();
+        }
+    });
+
+    // Close modal when clicking on X or outside
+    document.querySelector('.close').addEventListener('click', closeAddStudentModal);
+    window.addEventListener('click', function(event) {
+        if (event.target === document.getElementById('addStudentModal')) {
+            closeAddStudentModal();
+        }
+    });
+
+    // Handle form submission
+    document.getElementById('addStudentForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const studentData = {
+            studentNumber: document.getElementById('studentNumber').value,
+            name: document.getElementById('firstName').value,
+            surname: document.getElementById('lastName').value,
+            timestamp: new Date().toLocaleTimeString()
+        };
+
+        addStudent(studentData);
+        closeAddStudentModal();
+
+        // Reset form
+        this.reset();
+    });
 
     window.onload = async () => {
         await getServerInfo();
         fetchStudents();
+        // Poll for updates every 10 seconds
         setInterval(fetchStudents, 10000);
     };
 </script>

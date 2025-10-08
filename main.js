@@ -150,6 +150,87 @@ function createWindow() {
         res.json({ success: true, message: 'All registrations have been reset' });
     });
 
+    // NEW: API endpoint to add a student manually
+    expressApp.post('/add-student', (req, res) => {
+        const { studentNumber, name, surname, timestamp } = req.body;
+
+        if (!studentNumber || !name || !surname) {
+            return res.status(400).json({
+                success: false,
+                message: 'All fields are required'
+            });
+        }
+
+        // Check if student with this number already exists
+        const existingStudentIndex = students.findIndex(s => s.studentNumber === studentNumber);
+        if (existingStudentIndex >= 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student with this number already exists'
+            });
+        }
+
+        const student = {
+            studentNumber,
+            name,
+            surname,
+            timestamp: timestamp || new Date().toLocaleTimeString(),
+            ipAddress: 'manual-entry'
+        };
+
+        // Add the student to the list
+        students.push(student);
+        console.log(`New student added manually: ${name} ${surname}`);
+
+        res.status(200).json({
+            success: true,
+            message: 'Student added successfully',
+            studentsCount: students.length
+        });
+    });
+
+    // NEW: API endpoint to remove a student
+    expressApp.post('/remove-student', (req, res) => {
+        const { studentNumber } = req.body;
+
+        if (!studentNumber) {
+            return res.status(400).json({
+                success: false,
+                message: 'Student number is required'
+            });
+        }
+
+        const initialLength = students.length;
+
+        // Find and remove the student
+        const studentIndex = students.findIndex(s => s.studentNumber === studentNumber);
+
+        if (studentIndex >= 0) {
+            // If student was registered via QR code, remove their IP from registered IPs
+            const student = students[studentIndex];
+            if (student.ipAddress && student.ipAddress !== 'manual-entry') {
+                registeredIPs.delete(student.ipAddress);
+            }
+
+            // Remove from students array
+            students.splice(studentIndex, 1);
+
+            console.log(`Student removed: ${studentNumber}`);
+
+            res.status(200).json({
+                success: true,
+                message: 'Student removed successfully',
+                studentsCount: students.length
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'Student not found',
+                studentsCount: students.length
+            });
+        }
+    });
+
     // Start the server
     const PORT = process.env.PORT || 3000;
     let currentValidToken = null;

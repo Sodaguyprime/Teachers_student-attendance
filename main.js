@@ -259,9 +259,6 @@ function createWindow() {
         }, 1000);
     });
 
-    // Open the DevTools to help debug issues
-    mainWindow.webContents.openDevTools();
-
     // Emitted when the window is closed
     mainWindow.on('closed', function () {
         mainWindow = null;

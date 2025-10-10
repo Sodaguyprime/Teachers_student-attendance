@@ -1,0 +1,48 @@
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+  color: #000000;
+  text-align: center;
+}
+
+button {
+  border-radius: 1rem;
+  border-style:none;
+  background-color: purple;
+  color:white;
+  width: 17rem;
+  height: 4rem;
+  font-size: 1rem;
+  margin: 0.5rem;
+  cursor: pointer;
+  align-items: center;
+}
+
+button:hover{
+  transform: scale(1.1);
+}
+
+.login-contianer {
+  display: flex;
+  flex-direction: row;
+  border: none;
+  border-radius: 1rem;
+  padding: 2rem;
+}

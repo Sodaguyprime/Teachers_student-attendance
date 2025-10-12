@@ -1,12 +1,17 @@
 import './Login.css';
+import {useNavigate} from 'react-router-dom';
 
 
 function Login(){
-
+    const navigate  = useNavigate();
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        navigate('/MainArea');
+    }
     return(< >
     <div className="login-form">
         <h1> Login</h1>
-        <form>
+        <form onSubmit={handleSubmit}>
         <div className="user-name">
             <input
                 type = "text"
@@ -26,9 +31,10 @@ function Login(){
                 />
             </div>
             <input
-                type="submit"
-                value="LOGIN"
-                className="btn"
+                type = "submit"
+            name = "submit"
+            className ="btn"
+                value = "Login"
             />
         </form>
     </div>

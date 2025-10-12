@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route} from 'react-router-dom'
 import Login from './Login';
+import MainArea from './teacher/MainArea';
+
 const App = () => {
+
   return(
-    <>
-    <Login /> 
-    </>
+    <BrowserRouter>
+        <Routes>
+            <Route path="/" element={<Login/>} />
+            <Route path="/login" element={<Login/>} />
+            <Route path="/MainArea" element={<MainArea />} />
+        </Routes>
+    </BrowserRouter>
   );  
 };
 

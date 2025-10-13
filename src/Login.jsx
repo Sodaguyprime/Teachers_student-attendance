@@ -1,8 +1,6 @@
-import './Login.css';
+
 import {useNavigate} from 'react-router-dom';
-
-
-function Login(){
+const Login = () => {
     const navigate  = useNavigate();
     const handleSubmit = (e) => {
         e.preventDefault();

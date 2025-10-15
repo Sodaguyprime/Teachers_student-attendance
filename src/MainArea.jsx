@@ -72,7 +72,7 @@ const MainArea = () => {
                         </svg>
                         <span>Requests</span>
                     </a>
-                    <a href="#support" className="nav-item">
+                    <a href="Login" className="nav-item">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"/>
@@ -85,9 +85,6 @@ const MainArea = () => {
             {/* Main Content Area */}
             <div className="profile-container">
                 <div className="profile-header">
-                    <div className="profile-image">
-                        <img src="src\1108-vibing.gif" alt="Teacher Profile" />
-                    </div>
                     <div className="profile-info">
                         <h1>Teacher Name</h1>
                         <p>Subject: Mathematics</p>

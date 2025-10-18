@@ -19,7 +19,7 @@ const MainArea = () => {
 
                 <div className="sidebar-profile">
                     <div className="sidebar-avatar">
-                        <img src="src\1108-vibing.gif" alt="User Avatar" />
+                        <img src="public\1108-vibing.gif" alt="User Avatar" />
                     </div>
                     <p className="sidebar-account-text">YOUR ACCOUNT</p>
                 </div>

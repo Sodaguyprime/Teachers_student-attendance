@@ -1,44 +1,66 @@
+import React, { useState } from 'react';
+import './Login.css';
 
-import {useNavigate} from 'react-router-dom';
-const Login = () => {
-    const navigate  = useNavigate();
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        navigate('/MainArea');
-    }
-    return(< >
-    <div className="login-form">
-        <h1> Login</h1>
-        <form onSubmit={handleSubmit}>
-        <div className="user-name">
-            <input
-                type = "text"
-                id = "username"
-                name = "username"
-                placeholder = "username"
-                className="text_input"
-                />
+const LoginPage = () => {
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Login attempt:', { userId, password });
+    // Add your login logic here
+  };
+
+  return (
+    <div className="login-container">
+      <div className="login-split">
+        <div className="left-panel">
+          <div className="footer-links">
+            <a href="#about">About</a>
+            <a href="#privacy">Privacy</a>
+            <a href="#terms">Terms of Use</a>
+            <a href="#faq">FAQ</a>
+          </div>
         </div>
-            <div className="password">
+
+        <div className="right-panel">
+          <div className="login-form-container">
+            <h1>Login to your<br />student dashboard</h1>
+            
+            <form onSubmit={handleSubmit}>
+              <div className="input-group">
                 <input
-                    type = "password"
-                    id = "password"
-                    name = "password"
-                    placeholder = "password"
-                    className="text_input"
+                  type="text"
+                  placeholder="USER ID"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  className="login-input"
                 />
-            </div>
-            <input
-                type = "submit"
-            name = "submit"
-            className ="btn"
-                value = "Login"
-            />
-        </form>
+              </div>
+              
+              <div className="input-group">
+                <input
+                  type="password"
+                  placeholder="PASSWORD"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="login-input"
+                />
+              </div>
+              
+              <button type="submit" className="login-button">
+                LOGIN
+              </button>
+              
+              <div className="forgot-password">
+                <a href="MainArea">Go to main page tawali</a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+};
 
-        </>
-    );
-}
-
-export default Login
+export default LoginPage;

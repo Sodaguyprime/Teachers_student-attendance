@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route} from 'react-router-dom'
 import Login from './Login';
-import MainArea from './teacher/MainArea';
+import MainArea from './MainArea';
 import './App.css';
 const App = () => {
 

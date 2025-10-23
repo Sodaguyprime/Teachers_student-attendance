@@ -8,7 +8,7 @@ const LoginPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Login attempt:', { userId, password });
-    // Add your login logic here
+
   };
 
   return (
@@ -25,7 +25,7 @@ const LoginPage = () => {
 
         <div className="right-panel">
           <div className="login-form-container">
-            <h1>Login to your<br />student dashboard</h1>
+            <h1>Login to your<br />Teachers dashboard</h1>
             
             <form onSubmit={handleSubmit}>
               <div className="input-group">

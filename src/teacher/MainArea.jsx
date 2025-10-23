@@ -21,14 +21,6 @@ const MainArea = () => {
                 </div>
 
                 <div className="profile-details">
-                    <section className="contact-info">
-                        <h2>Contact Information</h2>
-                        <p>Email: something@smth.com</p>
-                        <p>Phone: (123) 456-7890</p>
-                        <p>Office: Room 101, torture room </p>
-                        <p>Office Hours: Mon-Fri, 2:00 PM - 4:00 PM</p>
-                    </section>
-
                     <section className="classes">
                         <h2>Current Classes</h2>
                         <ul>
@@ -90,11 +82,6 @@ const MainArea = () => {
                             </table>
                         </div>
                     </section>
-
-                    <section className="achievements">
-                    <Achievements/>
-                    </section>
-
                     <section className="announcements">
                         <Announcements/>
                     </section>

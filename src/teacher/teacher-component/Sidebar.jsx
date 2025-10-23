@@ -35,43 +35,12 @@ const Sidebar = () => {
                 </svg>
                 <span>Departments</span>
             </a>
-            <a href="#news" className="nav-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span>News & Events</span>
-            </a>
-            <a href="#erp" className="nav-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span>ERP</span>
-            </a>
-            <a href="#tasks" className="nav-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <line x1="8" y1="6" x2="21" y2="6"/>
-                    <line x1="8" y1="12" x2="21" y2="12"/>
-                    <line x1="8" y1="18" x2="21" y2="18"/>
-                    <line x1="3" y1="6" x2="3.01" y2="6"/>
-                    <line x1="3" y1="12" x2="3.01" y2="12"/>
-                    <line x1="3" y1="18" x2="3.01" y2="18"/>
-                </svg>
-                <span>Tasks</span>
-            </a>
-            <a href="#requests" className="nav-item">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span>Requests</span>
-            </a>
             <a href="Login" className="nav-item">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="3"/>
                     <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"/>
                 </svg>
-                <span href= "Login">Back to Login</span>
+                <span href= "Login">Log out</span>
             </a>
         </nav>
     </>)

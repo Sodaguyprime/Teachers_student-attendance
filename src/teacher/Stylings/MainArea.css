@@ -130,7 +130,7 @@ body {
 .profile-container {
     margin-left: 280px;
     padding: 40px 50px;
-    width: calc(100% - 280px);
+    width: 100%;
     background: #e8e9f0;
 }
 

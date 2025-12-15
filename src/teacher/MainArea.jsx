@@ -82,9 +82,6 @@ const MainArea = () => {
                             </table>
                         </div>
                     </section>
-                    <section className="announcements">
-                        <Announcements/>
-                    </section>
                 </div>
             </div>
         </div>

@@ -14,14 +14,6 @@ const LoginPage = () => {
   return (
     <div className="login-container">
       <div className="login-split">
-        <div className="left-panel">
-          <div className="footer-links">
-            <a href="#about">About</a>
-            <a href="#privacy">Privacy</a>
-            <a href="#terms">Terms of Use</a>
-            <a href="#faq">FAQ</a>
-          </div>
-        </div>
 
         <div className="right-panel">
           <div className="login-form-container">
@@ -53,7 +45,7 @@ const LoginPage = () => {
               </button>
               
               <div className="forgot-password">
-                <a href="MainArea">Go to main page tawali</a>
+                <a href="MainArea">Go to main page</a>
               </div>
             </form>
           </div>

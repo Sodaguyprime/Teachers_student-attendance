@@ -1,0 +1,8 @@
+/* Auth0-specific CSS styles */
+body {
+  font-family: Arial, sans-serif;
+}
+button {
+  font-size: 16px;
+  padding: 10px;
+}

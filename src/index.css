@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-paper: #faf9f7;
+  --color-card: #ffffff;
+  --color-ink: #1a1917;
+  --color-muted: #6b6660;
+  --color-faint: #9a948c;
+  --color-line: #e6e2db;
+  --color-present: #2f6b4f;
+  --color-present-soft: #edf4ef;
+  --color-warn: #8a5a1b;
+  --color-warn-soft: #fbf3e6;
+  --color-alert: #9b2c2c;
+  --color-alert-soft: #fbeeee;
+
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, monospace;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Numbers in tables should line up column to column. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .print-plain {
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

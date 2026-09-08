@@ -1,2 +1,10 @@
-node_modules
-.idea
+node_modules/
+dist/
+.data/
+*.local
+.env
+.DS_Store
+.idea/
+.vscode/
+.scratch/
+*.tsbuildinfo

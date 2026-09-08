@@ -1,139 +1,183 @@
 # Attendance
 
-Classroom attendance by QR code. The teacher projects a code that changes every ten
-seconds; students scan it and sign in from their phones. A code cannot be reused from
-the same phone, and a student number cannot be used from a second phone.
+Classroom attendance by QR code.
 
-Built as a rewrite of a university hackathon project. The original is preserved at the
-[`v0-hackathon`](../../tree/v0-hackathon) tag.
+The teacher projects a code that changes every 10 seconds. Students scan it and sign in from their phones. One phone, one student, one session.
 
-## Running it
+Built for a university hackathon, rebuilt from scratch. The original is kept at the [`v0-hackathon`](../../tree/v0-hackathon) tag.
+
+---
+
+## The teacher screen
+
+Classes, rosters, and phone bindings in one place.
+
+![Teacher dashboard](docs/screenshots/dashboard.jpg)
+
+Open a session and the code starts rotating. Students appear live as they scan — no refreshing.
+
+![Live session](docs/screenshots/session.jpg)
+
+---
+
+## The student screen
+
+Scan, type your number and surname, done.
+
+<img src="docs/screenshots/scan.png" width="360" alt="Scan page">
+<img src="docs/screenshots/success.png" width="360" alt="Marked present">
+
+Sign in for a friend and it stops you.
+
+<img src="docs/screenshots/blocked.png" width="360" alt="Blocked sign-in">
+
+---
+
+## The headcount check
+
+Cryptography cannot see the room. A student can still carry a friend's phone in.
+
+So the app asks how many people you actually counted, and compares.
+
+![Headcount check](docs/screenshots/headcount.jpg)
+
+---
+
+## Features
+
+**Taking attendance**
+- Rotating QR code, new one every 10 seconds
+- Students appear live on your screen as they scan
+- Import a roster by pasting `number, first name, surname`
+- Multiple classes, one roster each
+- Mark anyone present by hand
+- Close the session when you're done
+
+**Stopping cheating**
+- Codes expire in ~20 seconds — a screenshot is useless
+- One phone can only mark one student, per class
+- One student number can only be used from one phone
+- Only students on the roster can sign in
+- Surname must match the number
+- Headcount check catches proxies the app can't see
+
+**Getting the data out**
+- CSV export, opens in Excel
+- Print / PDF view
+- Present and absent both recorded
+- Hand-marked rows labelled `manual`, so an audit can tell them apart
+
+**Practical**
+- Runs on your laptop, no accounts, no cloud
+- Students just need the same WiFi
+- Data stays in a local SQLite file
+- One command to start
+
+---
+
+## Run it
 
 ```bash
 npm install
 npm run dev
 ```
 
-The teacher dashboard is at <http://localhost:5173>. Students on the same WiFi open the
-address printed in the terminal.
+Teacher screen: <http://localhost:5173>
+Students: the address printed in the terminal.
 
-For the single-process version:
+Single process:
 
 ```bash
 npm run build
-npm start          # http://localhost:3000
+npm start
 ```
 
-Data lives in `.data/attendance.db` (SQLite, gitignored). Nothing is sent anywhere.
+---
 
-## How it works
+## How the security works
 
-1. Create a class and paste in a roster — `number, first name, surname` per line.
-2. Open a session. The QR code appears and starts rotating.
-3. Students scan, enter their number and surname, and appear on your screen live.
-4. Enter your headcount, then close the session and export.
+### Codes that expire
 
-## The security model
+The old version stored the code in a variable with no expiry. A screenshot worked until the next rotation.
 
-The original version had three holes, and each one shaped a decision here.
-
-### Codes expire, and are not stored
-
-The old server kept the current token in a mutable variable with no expiry, so a
-screenshot worked until the next rotation and there was a race between rotating the code
-and a student submitting it.
-
-Each session now gets a 32-byte secret, and the token is derived from it TOTP-style:
+Now each session gets a secret, and the code is derived from it:
 
 ```
-token = HMAC-SHA256(sessionSecret, sessionId | floor(now / 10s))
+code = HMAC-SHA256(sessionSecret, sessionId | floor(now / 10s))
 ```
 
-Nothing is written down. The server recomputes the current window and the one before it,
-so a token is valid for at most about twenty seconds, and there is no shared mutable
-state to race. Comparison is constant-time.
+- Nothing is stored, so nothing can be stolen
+- Valid for the current window and the one before — about 20 seconds
+- No shared mutable state, so rotation can't race a submission
+- Compared in constant time
 
-Since twenty seconds is not long enough to type a student number, the token is exchanged
-once on page load for a **scan pass** — a signed value bound to the session, the device
-and a five-minute expiry. The token proves you were looking at the projected code; the
-pass gives you time to fill the form in. Forwarding a pass to a friend fails, because
-their device hash will not match the one it was signed for.
+Twenty seconds is not long enough to type your number, so the code is swapped once on page load for a **pass** — signed, bound to your phone, good for 5 minutes. Send the pass to a friend and it fails, because their phone hash won't match.
 
 ### One phone, one student
 
-The old check was by IP address, which is broken in both directions: on campus WiFi the
-whole class shares one NAT address, so the first student would have locked out everyone
-else, and switching to mobile data defeats it entirely.
+The old version deduplicated by IP address. On campus WiFi the whole class shares one address, so the first student would have locked out everyone else. Switching to mobile data defeated it anyway.
 
-Instead each browser holds a random UUID in a signed, httpOnly cookie. Only its SHA-256
-is stored, so the database never contains a value that could be replayed into a cookie.
-The rules are unique indexes rather than application code, so they cannot be raced or
-forgotten:
+Now each browser holds a random ID in a signed, httpOnly cookie. Only its SHA-256 is stored.
+
+The rules are database constraints, not `if` statements — they can't be raced or forgotten:
 
 | Constraint | Stops |
 |---|---|
-| `attendance (session_id, student_id)` | a student being marked twice in one session |
-| `attendance (session_id, device_hash)` | one phone marking twice in one session |
-| `device_claims (class_id, student_id)` | a student signing in from a second phone |
-| `device_claims (class_id, device_hash)` | a phone being used for a second student |
+| `attendance (session_id, student_id)` | a student marked twice |
+| `attendance (session_id, device_hash)` | one phone marking twice |
+| `device_claims (class_id, student_id)` | a student using a second phone |
+| `device_claims (class_id, device_hash)` | a phone used for a second student |
 
-The first scan binds a student number to a phone for the whole class. The teacher can
-release that binding from the roster when someone changes device.
+First scan binds a number to a phone for the whole class. Teacher can release it when someone gets a new phone.
 
-Every rejection is decided before anything is written, so a failed scan never leaves a
-binding behind.
+Every rejection is decided before anything is written, so a failed scan never leaves a binding behind.
 
-### Identity is checked against a roster
+### Roster identity
 
-Anyone could previously type any student number. Now only numbers on the imported roster
-are accepted, and the surname has to match.
+Anyone could previously type any student number. Now the number must be on the roster and the surname must match.
 
-### What this does not solve
+### What it doesn't stop
 
-**A student can carry a friend's phone into the room.** No amount of cryptography sees
-the room, so the app does not pretend to. The session screen asks for a headcount and
-compares it to the number of rows: if 31 are marked and you counted 28, it says so before
-you export.
+- **Carrying a friend's phone in.** That's what the headcount is for.
+- **Clearing cookies.** A deterrent, not a proof. Headcount again.
 
-**Clearing cookies gets a fresh device identity.** It is a deterrent, not a proof. The
-headcount is the backstop.
-
-Students who cannot sign in are told, on the scan page, to speak to the teacher before
-leaving, and the session screen lets you mark anyone by hand. Manual rows are recorded as
-`manual` and labelled in the export, so an audit can tell them apart from scans.
+Students who can't sign in are told to speak to the teacher before leaving. The teacher can mark them by hand.
 
 ### Other measures
 
-- **The teacher API is loopback-only.** There is no teacher password by design, so the
-  dashboard is served only to the machine running the app. Students on the same WiFi can
-  reach the scan page and get a 403 on everything else. `X-Forwarded-For` is trusted only
-  when the socket is itself loopback, so a LAN request cannot spoof its way in.
-- **No CDN scripts.** Everything is bundled, so a strict CSP holds: `default-src 'self'`,
-  `object-src 'none'`, `frame-ancestors 'none'`.
-- **No `xlsx` or `jsPDF`.** The original loaded four scripts from a CDN, including
-  `xlsx@0.18.5`, which has known prototype-pollution advisories and is unmaintained on
-  npm. Export is CSV (which Excel opens natively) plus a print stylesheet for PDF — zero
-  dependencies. CSV fields are quoted and leading `=`, `+`, `-`, `@` are escaped so a
-  crafted name cannot become a live formula.
-- **Every request body is validated with Zod**; the scan endpoint is rate limited per
-  device.
+- Teacher API is **loopback only** — there is no password by design, so students on the WiFi get a 403 on everything but the scan page
+- Strict CSP, no CDN scripts, everything bundled
+- No `xlsx` or `jsPDF` — the original pulled in `xlsx@0.18.5`, which has prototype-pollution advisories and is unmaintained. Export is plain CSV plus a print stylesheet
+- CSV fields quoted, leading `=` `+` `-` `@` escaped, so a crafted name can't become a live formula
+- Zod on every request boundary
+- Rate limiting on the scan endpoint
+
+---
 
 ## Stack
 
-TypeScript throughout. [Hono](https://hono.dev) on Node, SQLite via
-[Drizzle](https://orm.drizzle.team), React + Vite + Tailwind, Vitest. Server-sent events
-push new scans to the teacher's screen. One process serves the API and the built client.
+TypeScript everywhere.
+
+| | |
+|---|---|
+| Server | Hono on Node |
+| Database | SQLite via Drizzle |
+| Client | React, Vite, Tailwind |
+| Live updates | Server-sent events |
+| Tests | Vitest |
 
 ```
 server/
-  lib/          tokens, scan passes, device cookies, rate limiting, headers
-  services/     the scan decision, roster parsing, queries and export
-  routes/       teacher API (loopback-only) and the public scan API
-  db/           schema and connection
-src/            React client — teacher dashboard, session screen, scan page
-shared/         types used by both sides
-tests/          the security core
+  lib/        codes, passes, device cookies, rate limiting, headers
+  services/   the scan decision, roster parsing, queries, export
+  routes/     teacher API (loopback only), public scan API
+  db/         schema and connection
+src/          teacher dashboard, session screen, scan page
+shared/       types used by both sides
+tests/        the security core
 ```
+
+---
 
 ## Tests
 
@@ -141,14 +185,18 @@ tests/          the security core
 npm test
 ```
 
-28 tests over the parts where a mistake means wrong attendance: token rotation and
-expiry, pass binding, and every rejection path in the scan decision — wrong surname,
-unknown number, second device, second student, closed session, and the invariant that a
-rejected scan leaves no binding behind.
+28 tests, covering the places where a bug means wrong attendance:
+
+- Code rotation, expiry, and forged codes
+- Passes bound to the wrong phone or wrong session
+- Wrong surname, unknown number, closed session
+- Second phone, second student
+- A rejected scan leaving no binding behind
+
+---
 
 ## Credits
 
-Originally built for a hackathon at Cyprus International University by Ammar Mirghani,
-Mohammed Saif and Lina.
+Built for a hackathon at Cyprus International University by Ammar Mirghani, Mohammed Saif and Lina.
 
 MIT.

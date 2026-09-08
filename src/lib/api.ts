@@ -39,7 +39,13 @@ export const api = {
     }),
 
   releaseDevice: (classId: string, studentId: string) =>
-    request<void>(`/api/teacher/classes/${classId}/roster/${studentId}/release-device`, {
+    request<{ released: number }>(
+      `/api/teacher/classes/${classId}/roster/${studentId}/release-device`,
+      { method: 'POST' },
+    ),
+
+  releaseAllDevices: (classId: string) =>
+    request<{ released: number }>(`/api/teacher/classes/${classId}/release-devices`, {
       method: 'POST',
     }),
 

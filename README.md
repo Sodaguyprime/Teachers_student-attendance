@@ -8,38 +8,35 @@ Built for a university hackathon, rebuilt from scratch. The original is kept at 
 
 ---
 
-## The teacher screen
+## How it goes
 
-Classes, rosters, and phone bindings in one place.
+**1 · Import the class once.** Paste `number, first name, surname`. The roster also shows which students have a phone bound, and lets you reset one or all of them.
 
-![Teacher dashboard](docs/screenshots/dashboard.jpg)
+![Teacher dashboard with the roster and phone bindings](docs/screenshots/1-roster.jpg)
 
-Open a session and the code starts rotating. Students appear live as they scan — no refreshing.
+**2 · Open a session.** The code rotates every ten seconds and students appear the moment they scan — no refreshing.
 
-![Live session](docs/screenshots/session.jpg)
+![Live session with the rotating QR code and students appearing as they scan](docs/screenshots/2-session.jpg)
 
----
+**3 · The student scans and types their number.** Nothing else to install.
 
-## The student screen
+<img src="docs/screenshots/3-scan.png" width="330" alt="Student sign-in form on a phone">
 
-Scan, type your number and surname, done.
+**4 · Signed in.** The row lands on the teacher's screen instantly.
 
-<img src="docs/screenshots/scan.png" width="360" alt="Scan page">
-<img src="docs/screenshots/success.png" width="360" alt="Marked present">
+<img src="docs/screenshots/4-present.png" width="330" alt="Confirmation that the student was marked present">
 
-Sign in for a friend and it stops you.
+**5 · Signing in for a friend fails.** One phone can only ever be one student in a class.
 
-<img src="docs/screenshots/blocked.png" width="360" alt="Blocked sign-in">
+<img src="docs/screenshots/5-blocked.png" width="330" alt="Sign-in refused because the phone is already registered to another student">
 
----
+**6 · Changed phone? The teacher resets the binding.** One student, or the whole class at once. Attendance already recorded is untouched.
 
-## The headcount check
+<img src="docs/screenshots/6-reset.png" width="560" alt="Roster showing eight bound phones and a confirmation to reset them all">
 
-Cryptography cannot see the room. A student can still carry a friend's phone in.
+**7 · Count the room before you export.** Cryptography cannot see who walked in carrying two phones — a headcount can.
 
-So the app asks how many people you actually counted, and compares.
-
-![Headcount check](docs/screenshots/headcount.jpg)
+![Headcount check flagging two more students marked than counted](docs/screenshots/7-headcount.jpg)
 
 ---
 
@@ -51,6 +48,7 @@ So the app asks how many people you actually counted, and compares.
 - Import a roster by pasting `number, first name, surname`
 - Multiple classes, one roster each
 - Mark anyone present by hand
+- Reset a student's phone when they change device, one at a time or the whole class
 - Close the session when you're done
 
 **Stopping cheating**
@@ -128,7 +126,14 @@ The rules are database constraints, not `if` statements — they can't be raced 
 | `device_claims (class_id, student_id)` | a student using a second phone |
 | `device_claims (class_id, device_hash)` | a phone used for a second student |
 
-First scan binds a number to a phone for the whole class. Teacher can release it when someone gets a new phone.
+First scan binds a number to a phone for the whole class.
+
+That binding has to be breakable — students lose phones, replace them, or bind the wrong number on their first scan — so the teacher can reset it:
+
+- **One student**, from the roster or mid-class from the session screen
+- **The whole class at once**, for a new term or a reshuffled group
+
+Resetting clears the binding, not the attendance. Anyone already marked present stays present. Only the teacher can do it; a student cannot free their own number by asking.
 
 Every rejection is decided before anything is written, so a failed scan never leaves a binding behind.
 
@@ -185,13 +190,15 @@ tests/        the security core
 npm test
 ```
 
-28 tests, covering the places where a bug means wrong attendance:
+40 tests, covering the places where a bug means wrong attendance:
 
 - Code rotation, expiry, and forged codes
 - Passes bound to the wrong phone or wrong session
 - Wrong surname, unknown number, closed session
 - Second phone, second student
 - A rejected scan leaving no binding behind
+- A reset letting a new phone bind, and leaving recorded attendance untouched
+- Picking the real network card over a VPN adapter for the QR address
 
 ---
 

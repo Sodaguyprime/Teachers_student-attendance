@@ -39,6 +39,8 @@ export interface AttendanceRow {
   lastName: string;
   markedAt: number | null;
   method: 'scan' | 'manual' | null;
+  /** True when this student has a phone bound for the class. */
+  hasDeviceClaim: boolean;
 }
 
 export interface SessionState {

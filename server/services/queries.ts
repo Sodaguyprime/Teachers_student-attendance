@@ -60,15 +60,18 @@ export function getSessionState(db: Db, sessionId: string): SessionState | null 
       lastName: students.lastName,
       markedAt: attendance.markedAt,
       method: attendance.method,
+      claimId: deviceClaims.id,
     })
     .from(students)
     .leftJoin(
       attendance,
       and(eq(attendance.studentId, students.id), eq(attendance.sessionId, sessionId)),
     )
+    .leftJoin(deviceClaims, eq(deviceClaims.studentId, students.id))
     .where(eq(students.classId, session.classId))
     .orderBy(asc(students.studentNumber))
-    .all();
+    .all()
+    .map(({ claimId, ...rest }) => ({ ...rest, hasDeviceClaim: claimId !== null }));
 
   return {
     ...session,

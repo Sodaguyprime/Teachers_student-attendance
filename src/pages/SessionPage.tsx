@@ -359,7 +359,7 @@ function AbsentPanel({
         <>
           <p className="no-print border-b border-line px-5 py-3 text-xs leading-relaxed text-muted">
             If a student says their phone would not work, mark them here rather than leaving them
-            absent.
+            absent. If they have changed phone, reset theirs and let them scan again.
           </p>
           <table className="w-full text-sm">
             <tbody>
@@ -369,16 +369,30 @@ function AbsentPanel({
                   <td className="px-2 py-2.5">
                     {row.firstName} {row.lastName}
                   </td>
-                  <td className="no-print w-32 px-5 py-2.5 text-right">
-                    <button
-                      onClick={async () => {
-                        await api.mark(state.id, row.studentId);
-                        await onChanged();
-                      }}
-                      className="text-xs text-muted underline decoration-line underline-offset-4 hover:text-ink"
-                    >
-                      mark present
-                    </button>
+                  <td className="no-print w-56 px-5 py-2.5 text-right">
+                    <div className="flex items-center justify-end gap-4">
+                      {row.hasDeviceClaim ? (
+                        <button
+                          onClick={async () => {
+                            await api.releaseDevice(state.classId, row.studentId);
+                            await onChanged();
+                          }}
+                          className="text-xs text-muted underline decoration-line underline-offset-4 hover:text-ink"
+                          title="Unbind their old phone so they can scan from a new one"
+                        >
+                          reset phone
+                        </button>
+                      ) : null}
+                      <button
+                        onClick={async () => {
+                          await api.mark(state.id, row.studentId);
+                          await onChanged();
+                        }}
+                        className="text-xs text-muted underline decoration-line underline-offset-4 hover:text-ink"
+                      >
+                        mark present
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

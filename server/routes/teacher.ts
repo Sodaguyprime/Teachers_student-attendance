@@ -5,12 +5,13 @@ import { zValidator } from '@hono/zod-validator';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import type { Db } from '../db/client.js';
-import { attendance, classes, deviceClaims, sessions } from '../db/schema.js';
+import { attendance, classes, sessions } from '../db/schema.js';
 import { events } from '../lib/events.js';
 import { localNetworkAddress } from '../lib/net.js';
 import { createSessionSecret, currentToken, DEFAULT_ROTATION_SECONDS } from '../lib/tokens.js';
 import { getRoster, getSessionState, listClasses, toCsv } from '../services/queries.js';
 import { parseRoster, replaceRoster } from '../services/roster.js';
+import { countDeviceClaims, releaseAllDevices, releaseDevice } from '../services/devices.js';
 
 export function teacherRoutes(db: Db, port: number) {
   const app = new Hono();
@@ -49,18 +50,20 @@ export function teacherRoutes(db: Db, port: number) {
     },
   );
 
-  /** Frees a student's phone binding — lost device, new phone, wrong first scan. */
+  /** Frees one student's phone binding — lost device, new phone, wrong first scan. */
   app.post('/classes/:id/roster/:studentId/release-device', (c) => {
-    db.delete(deviceClaims)
-      .where(
-        and(
-          eq(deviceClaims.classId, c.req.param('id')),
-          eq(deviceClaims.studentId, c.req.param('studentId')),
-        ),
-      )
-      .run();
-    return c.body(null, 204);
+    const released = releaseDevice(db, c.req.param('id'), c.req.param('studentId'));
+    return c.json({ released });
   });
+
+  /** Clears every binding in the class, for a new term or a reshuffled group. */
+  app.post('/classes/:id/release-devices', (c) => {
+    const released = releaseAllDevices(db, c.req.param('id'));
+    return c.json({ released });
+  });
+
+  app.get('/classes/:id/device-claims', (c) =>
+    c.json({ count: countDeviceClaims(db, c.req.param('id')) }));
 
   app.post(
     '/classes/:id/sessions',

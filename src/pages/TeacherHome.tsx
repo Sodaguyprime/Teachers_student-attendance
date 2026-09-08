@@ -171,6 +171,7 @@ function ClassDetail({
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<{ imported: number; skipped: number[] } | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   const loadRoster = useCallback(async () => {
     setRoster(await api.getRoster(summary.id).catch(() => []));
@@ -206,6 +207,7 @@ function ClassDetail({
   }
 
   const hasRoster = (roster?.length ?? 0) > 0;
+  const boundCount = roster?.filter((r) => r.hasDeviceClaim).length ?? 0;
 
   return (
     <Card className="p-6">
@@ -229,7 +231,51 @@ function ClassDetail({
       ) : null}
 
       <section className="mt-8">
-        <Label>Roster</Label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Label>Roster</Label>
+          {boundCount > 0 ? (
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-muted">
+                {boundCount} {boundCount === 1 ? 'phone' : 'phones'} bound
+              </span>
+              {confirmingReset ? (
+                <>
+                  <Button
+                    variant="danger"
+                    className="px-2.5 py-1 text-xs"
+                    onClick={async () => {
+                      await api.releaseAllDevices(summary.id);
+                      setConfirmingReset(false);
+                      await loadRoster();
+                    }}
+                  >
+                    Reset all {boundCount}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="px-2 py-1 text-xs"
+                    onClick={() => setConfirmingReset(false)}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="secondary"
+                  className="px-2.5 py-1 text-xs"
+                  onClick={() => setConfirmingReset(true)}
+                  title="Clear every phone binding in this class, for a new term or a reshuffled group"
+                >
+                  Reset all phones
+                </Button>
+              )}
+            </div>
+          ) : null}
+        </div>
+        <p className="mt-2 max-w-prose text-xs leading-relaxed text-muted">
+          A student is tied to the first phone they sign in from. Reset it when someone changes
+          phone, or resets are refused as a second-device attempt.
+        </p>
         <div className="mt-3 max-h-72 overflow-y-auto rounded-lg border border-line">
           {roster === null ? (
             <div className="flex justify-center py-8">
@@ -246,7 +292,7 @@ function ClassDetail({
                     <td className="px-2 py-2.5">
                       {student.firstName} {student.lastName}
                     </td>
-                    <td className="w-40 px-4 py-2.5 text-right">
+                    <td className="w-44 px-4 py-2.5 text-right">
                       {student.hasDeviceClaim ? (
                         <button
                           onClick={async () => {
@@ -254,9 +300,9 @@ function ClassDetail({
                             await loadRoster();
                           }}
                           className="text-xs text-muted underline decoration-line underline-offset-4 hover:text-ink"
-                          title="Unbind this student from the phone they registered, so they can use a new one"
+                          title="Unbind this student from the phone they registered, so they can sign in from a new one"
                         >
-                          phone bound &middot; release
+                          phone bound &middot; reset
                         </button>
                       ) : (
                         <span className="text-xs text-faint">no phone yet</span>
